@@ -9,7 +9,7 @@ const app = express();
 app.use(express.json());
 
 //Validation object
-const signupSchema = z.object({
+const validSchema = z.object({
     username : z.string().min(3,"Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters")
 });
@@ -18,7 +18,7 @@ app.post("/api/v1/signup", async (req,res) => {
 
     try{
         //Validating inputs
-        const {username, password}= signupSchema.parse(req.body);
+        const {username, password}= validSchema.parse(req.body);
 
         //Hashing password
         const hashedPassword= await bcrypt.hash(password,5);
@@ -46,9 +46,47 @@ app.post("/api/v1/signup", async (req,res) => {
     }
 });
 
-app.post("/api/v1/signin", (req,res) => {
-    const username = req.body.username;
-    res.json({ message: `Hello ${username}, signed in!` });
+app.post("/api/v1/signin", async (req,res) => {
+    try{
+        //Validating inputs
+        const {username, password}= validSchema.parse(req.body);
+
+        const user = await UserModel.findOne({username});
+
+        if(!user){
+            return res.status(401).json({
+                message: "Invalid username or password",
+            })
+        }
+
+        //Comparing the hashedpassword
+        const isPasswordvalid= await bcrypt.compare(password, user.password as string);
+
+        if(!isPasswordvalid){
+            return res.status(401).json({
+                message: "Invalid username or password",
+            })
+        }
+
+        const token = jwt.sign( {userId: user._id}, process.env.JWT_SECRET as string);
+
+        return res.json({
+            token
+        });
+
+
+
+    }catch(e){
+        if(e instanceof z.ZodError){
+            return res.status(401).json({
+                message: "Invalid username or password",
+            })
+        }
+
+        return res.status(500).json({
+            message: "Internal Server Error."
+        })
+    }
 });
 
 app.post("/api/v1/content", (req,res) => {
