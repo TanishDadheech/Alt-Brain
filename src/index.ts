@@ -1,9 +1,11 @@
 import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { UserModel } from "./db";
+import { ContentModel, UserModel } from "./db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
+import { AuthRequest, userMiddleware } from "./middleware";
+
 
 const app = express();
 app.use(express.json());
@@ -89,15 +91,41 @@ app.post("/api/v1/signin", async (req,res) => {
     }
 });
 
-app.post("/api/v1/content", (req,res) => {
-    res.json({ message: "Content created" });
+app.post("/api/v1/content", userMiddleware, async (req: AuthRequest,res) => {
+    try {
+        const { link, type, title, tags } = req.body;
+
+        const content = await ContentModel.create({
+        link,
+        type,
+        title,
+        tags,
+        userId: req.userId, // attach the logged-in user
+        });
+
+        return res.json({
+        message: "Content created successfully",
+        });
+    } catch (err) {
+        return res.status(500).json({ message: "Failed to create content", error: err });
+    }
 });
 
-app.get("/api/v1/content", (req,res) => {
-    res.json({ message: "Here is your content" });
+app.get("/api/v1/content", userMiddleware, async (req: AuthRequest,res) => {
+
+    const userId= req.userId;
+    const content= await ContentModel.find({userId: userId}).populate("userId", "username");
+
+    res.json({ content });
 });
 
-app.delete("/api/v1/content", (req,res) => {
+app.delete("/api/v1/content", userMiddleware, async (req: AuthRequest,res) => {
+    const contentId= req.body.contentId;
+
+    await ContentModel.deleteMany({
+        contentId: contentId,
+        userId: req.userId
+    })
     res.json({ message: "Content deleted" });
 });
 
