@@ -129,8 +129,14 @@ app.delete("/api/v1/content", userMiddleware, async (req: AuthRequest,res) => {
     res.json({ message: "Content deleted" });
 });
 
-app.post("/api/v1/brain/share", (req,res) => {
-    res.json({ message: "Brain shared!" });
+app.post("/api/v1/brain/share", userMiddleware, (req,res) => {
+
+    const share = req.body.share;
+
+    if(share){
+        //generate link
+    }
+    res.json({ message: "Link shared to be copiedd!" });
 });
 
 app.post("/api/v1/brain/:shareLink", (req,res) => {
