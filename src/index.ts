@@ -11,7 +11,7 @@ import { GenerateHash } from "./utils";
 const app = express();
 app.use(express.json());
 
-//Validation object
+//Validation schema
 const validSchema = z.object({
     username : z.string().min(3,"Username must be at least 3 characters"),
     password: z.string().min(6, "Password must be at least 6 characters")
@@ -164,8 +164,42 @@ app.post("/api/v1/brain/share", userMiddleware, async (req:AuthRequest,res) => {
     }
 });
 
-app.post("/api/v1/brain/:shareLink", (req,res) => {
-    res.json({ message: `Brain link: ${req.params.shareLink}` });
+app.post("/api/v1/brain/:shareLink", async (req,res) => {
+
+    const hash = req.params.shareLink;
+
+    const link = await LinkModel.findOne({
+        hash
+    })
+
+    if(!link){
+        res.status(404).json({
+            message:"Error! Not FOund!",
+        })
+        
+        return;
+    }
+
+    const content= await ContentModel.find({
+        userId: link.userId,
+    })
+
+    const user = await UserModel.findOne({
+        _id: link.userId
+    })
+
+    if(!user){
+        res.status(404).json({
+            message:"User Not FOund!",
+        })
+        
+        return;
+    }
+
+    res.json({
+        username: user.username,
+        content: content
+    })
 });
 
 
