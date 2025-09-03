@@ -1,10 +1,11 @@
 import express from "express";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { ContentModel, UserModel } from "./db";
+import { ContentModel, LinkModel, UserModel } from "./db";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { AuthRequest, userMiddleware } from "./middleware";
+import { GenerateHash } from "./utils";
 
 
 const app = express();
@@ -129,14 +130,38 @@ app.delete("/api/v1/content", userMiddleware, async (req: AuthRequest,res) => {
     res.json({ message: "Content deleted" });
 });
 
-app.post("/api/v1/brain/share", userMiddleware, (req,res) => {
+app.post("/api/v1/brain/share", userMiddleware, async (req:AuthRequest,res) => {
 
     const share = req.body.share;
+    if (share) {
+            const existingLink = await LinkModel.findOne({
+                userId: req.userId
+            });
 
-    if(share){
-        //generate link
+            if (existingLink) {
+                res.json({
+                    hash: existingLink.hash
+                })
+                return;
+            }
+            const hash = GenerateHash(10);
+            await LinkModel.create({
+                userId: req.userId,
+                hash: hash
+            })
+
+            res.json({
+                hash
+            })
+    } else {
+        await LinkModel.deleteOne({
+            userId: req.userId
+        });
+
+        res.json({
+            message: "Removed link"
+        })
     }
-    res.json({ message: "Link shared to be copiedd!" });
 });
 
 app.post("/api/v1/brain/:shareLink", (req,res) => {
