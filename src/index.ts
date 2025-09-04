@@ -164,7 +164,7 @@ app.post("/api/v1/brain/share", userMiddleware, async (req:AuthRequest,res) => {
     }
 });
 
-app.post("/api/v1/brain/:shareLink", async (req,res) => {
+app.get("/api/v1/brain/:shareLink", async (req,res) => {
 
     const hash = req.params.shareLink;
 
